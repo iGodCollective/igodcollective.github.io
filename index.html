@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+
+<!-- Author God Bennett, powered by threejs -->
+<html lang="en">
+	<head>
+		<title>
+			iGod Collective (Ai)
+		</title>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+		/>
+		<link type="text/css" rel="stylesheet" href="data/css/main.css" />
+		
+	</head>
+	<body>
+		<div id="container"></div>
+		<div id="info" >
+			
+		</div> 
+		<div id="info" >
+			<p> <img src="data/images/logoMain.png" style="width:180px; height:180px;"></img> </p> 
+			<p class = 'MediumSegoeFontFace'> iGod Collective →  Designed & Coded by <a style="color: #efe0a7;" href="https://www.linkedin.com/in/god-bennett/">G.Bennett</a>. <a style="color: #efe0a7;" href="https://igodcollective.github.io/"> iGod Collective </a> is a sieve of my work at <a style="color: #efe0a7;" href ="https://twitter.com/jaia_876">"The Association".</a> </p>
+			<p class = 'SmallSegoeFontFace'>Mantra: The cosmos can be likened to malleable ai fabric which we can mold with our might. </p>
+		
+			<link type="text/css" rel="stylesheet" href="style.css" />
+		<script src='data/js/jquery.js' type='text/javascript'></script>
+		<script src='data/js/jquery.audiotag.js' type='text/javascript'></script>
+			<script src="data/js/sweetalert-dev.js"></script>
+			<link href="data/css/sweetalert.css" rel=stylesheet type = 'text/css' />	
+		</div>
+
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./data/build/three.module.js",
+					"three/addons/": "./data/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+			const params = {
+				height: 15,
+				radius: 100,
+				enabled: true,
+			};
+
+			let camera, scene, renderer, skybox, clock, tASolarSystemMixer, godHandsMixer, zRotationActionForward, zRotationActionForwardB, zRotationActionForwardC, zRotationActionForwardD;
+			let uiComponents;
+			let MAX_UI_COMPONENTS = 5;
+			let GODHAND_MOVE_AUDIO;
+			//0= hand   1= sun  2=earth 3 to 7 other planets from centet
+			
+			
+			const keyStates = {};
+			const STEPS_PER_FRAME = 5;
+			const direction = new THREE.Vector3;
+			let cameraTranslationSpeedPos = 0.34, cameraTranslationSpeedNeg = 0.00001;
+			var raycaster, mouse;
+			
+			
+			init().then( animate );
+			
+			document.addEventListener( 'keydown', ( event ) => {
+
+				keyStates[ event.code ] = true;
+
+			} );
+
+			document.addEventListener( 'keyup', ( event ) => {
+
+				keyStates[ event.code ] = false;
+
+			} );
+			
+			async function init() {
+
+	
+				camera = new THREE.PerspectiveCamera(
+					40,
+					window.innerWidth / window.innerHeight,
+					1,
+					1000
+				);
+				camera.position.set( - 20, 7, 20 );
+				camera.lookAt( 0, 4, 0 );
+				raycaster = new THREE.Raycaster();
+				mouse = new THREE.Vector2();
+				
+				const listener = new THREE.AudioListener();
+				camera.add(listener);
+
+				// Create a global audio object
+				const audioLoader = new THREE.AudioLoader();
+				GODHAND_MOVE_AUDIO = new THREE.Audio(listener);
+
+				
+				// Load a sound and set it as the Audio object's buffer
+				audioLoader.load('data/audios/gong_god_hand.mp3', function(buffer) {
+					GODHAND_MOVE_AUDIO.setBuffer(buffer);
+					GODHAND_MOVE_AUDIO.setLoop(false);
+					GODHAND_MOVE_AUDIO.setVolume(1); // You can adjust the volume here
+					//GODHAND_MOVE_AUDIO.play();
+				});
+				
+				clock = new THREE.Clock();
+
+				scene = new THREE.Scene();
+
+				const hdrLoader = new RGBELoader();
+			
+				const hdrEnvMap = await hdrLoader.loadAsync( 'data/textures/castel_st_angelo_roof_4k - like.hdr' );
+				
+				hdrEnvMap.mapping = THREE.EquirectangularReflectionMapping; 
+
+				scene.environment = hdrEnvMap;
+
+				const dracoLoader = new DRACOLoader();
+				dracoLoader.setDecoderPath( 'jsm/libs/draco/gltf/' );
+
+				
+				const godsHandsLoader = new GLTFLoader();
+				godsHandsLoader.setDRACOLoader( dracoLoader );
+					
+				godsHandsLoader.load( 'data/models/hand_gesture1.glb', function ( gltf ) {
+				
+					const godsHands = gltf.scene.children[ 0 ];
+					godsHands.scale.multiplyScalar( 29 ); //scale=3 for front view
+					godsHands.rotation.y = -125; //works with front view, comment out for rear
+					godsHands.rotation.x = -155; //works with front view, comment out for rear
+			
+					godsHands.position.set(172, -463, -80);
+					
+					//godsHands in-browser built simple animation
+						godHandsMixer= new THREE.AnimationMixer();
+					
+						// Define animation menu item 1
+						const zRotation = new THREE.AnimationClip('zRotation', 1, [
+							new THREE.VectorKeyframeTrack('.rotation[z]', [0, 4], [0, Math.PI / 4])
+						]);
+						// Create animation action
+						zRotationActionForward = godHandsMixer.clipAction(zRotation, godsHands);
+						zRotationActionForward.loop = THREE.LoopOnce; // Play once
+						zRotationActionForward.clampWhenFinished = true; // Prevent resetting to default position
+						
+						
+						
+						// Define animation menu item 2
+						const zRotationB = new THREE.AnimationClip('zRotationB', .7, [
+							new THREE.VectorKeyframeTrack('.rotation[z]', [0, 4], [0, Math.PI / 4])
+						]);
+						// Create animation action
+						zRotationActionForwardB = godHandsMixer.clipAction(zRotationB, godsHands);
+						zRotationActionForwardB.loop = THREE.LoopOnce; // Play once
+						zRotationActionForwardB.clampWhenFinished = true; // Prevent resetting to default position
+						
+						// Define animation menu item 2
+						const zRotationC = new THREE.AnimationClip('zRotationB', .4, [
+							new THREE.VectorKeyframeTrack('.rotation[z]', [0, 4], [0, Math.PI / 4])
+						]);
+						// Create animation action
+						zRotationActionForwardC = godHandsMixer.clipAction(zRotationC, godsHands);
+						zRotationActionForwardC.loop = THREE.LoopOnce; // Play once
+						zRotationActionForwardC.clampWhenFinished = true; // Prevent resetting to default position
+						
+						
+						
+						// Define animation menu item 2
+						const zRotationD = new THREE.AnimationClip('zRotationC', .2, [
+							new THREE.VectorKeyframeTrack('.rotation[z]', [0, 4], [0, Math.PI / 4])
+						]);
+						// Create animation action
+						zRotationActionForwardD = godHandsMixer.clipAction(zRotationD, godsHands);
+						zRotationActionForwardD.loop = THREE.LoopOnce; // Play once
+						zRotationActionForwardD.clampWhenFinished = true; // Prevent resetting to default position	
+
+						
+					//mixer = new THREE.AnimationMixer( godsHands );
+					//mixer.clipAction( gltf.animations[ 0 ] ).play();
+					scene.add( godsHands );
+
+				} );
+				
+				const tASolarSystemLoader = new GLTFLoader();
+				tASolarSystemLoader.setDRACOLoader( dracoLoader );
+					
+				tASolarSystemLoader.load( 'data/models/solar_system2.glb', function ( gltf ) {
+				
+					const tASolarSystem = gltf.scene.children[ 0 ];
+					tASolarSystem.scale.multiplyScalar( .6 );
+					//tASolarSystem.rotation.x = -23;
+					tASolarSystem.rotation.z = -90;
+			
+					tASolarSystem.position.set(70, -41, -80);
+					//tAUniverse.position.set(-6, 2, 0);
+					
+					//console.log("tASolarSystem");
+					//console.log(tASolarSystem);
+					
+					scene.add( tASolarSystem );
+					
+					tASolarSystemMixer = new THREE.AnimationMixer( tASolarSystem );
+					tASolarSystemMixer.clipAction( gltf.animations[ 0 ] ).play();
+					
+					
+					
+					render();
+
+				} );
+				
+				
+			
+				
+				
+				///////////////
+				//UI components
+				
+				// Load the image texture
+				var textureLoader = new THREE.TextureLoader();
+				// Create a plane geometry
+				var geometry = new THREE.PlaneGeometry(2, 2); // Width and height of the plane
+
+				
+				// Array to hold the texture paths
+				var texturePaths = [
+					'data/images/ui/ui_component_0.png',
+					'data/images/ui/ui_component_1.png',
+					'data/images/ui/ui_component_2.png',
+					'data/images/ui/ui_component_3.png',
+					'data/images/ui/ui_component_4.png'
+				];
+
+				// Array to hold the textures
+				var textures = texturePaths.map(function(path) {
+					return textureLoader.load(path);
+				});
+
+				// Array to hold the materials
+				var materials = textures.map(function(texture) {
+					return new THREE.MeshBasicMaterial({map: texture, transparent: true});
+				});
+
+				uiComponents = new Array(MAX_UI_COMPONENTS).fill().map((_, index) => {
+					var mesh = new THREE.Mesh(geometry, materials[index]);
+					return mesh;
+				});
+				
+				uiComponents[0].rotation.y = 12;
+				uiComponents[0].scale.multiplyScalar( 3 );
+				uiComponents[0].visible = false;
+				scene.add(uiComponents[0]);
+				
+				uiComponents[1].rotation.y = 12;
+				uiComponents[1].scale.multiplyScalar( 3 );
+				uiComponents[1].visible = false;
+				scene.add(uiComponents[1]);
+						
+				uiComponents[2].rotation.y = 12;
+				uiComponents[2].scale.multiplyScalar( 3 );
+				uiComponents[2].visible = false;
+				scene.add(uiComponents[2]);
+				
+				uiComponents[3].rotation.y = 12;
+				uiComponents[3].scale.multiplyScalar( 3 );
+				uiComponents[3].visible = false;
+				scene.add(uiComponents[3]);
+						
+				uiComponents[4].rotation.y = 12;
+				uiComponents[4].scale.multiplyScalar( 3 );
+				uiComponents[4].visible = false;
+				scene.add(uiComponents[4]);
+						
+						
+				///////////////
+				//Render setup
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+				//Orbit mouse controls
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render );
+				controls.target.set( 0, 2, 0 );
+				controls.maxPolarAngle = THREE.MathUtils.degToRad( 90 );
+				controls.maxDistance = 80;
+				controls.minDistance = 20;
+				controls.enablePan = false;
+				controls.update();
+
+				document.body.appendChild( renderer.domElement );
+				window.addEventListener( 'resize', onWindowResize );
+				renderer.domElement.addEventListener('click', detectGltfClick, false);
+				renderer.domElement.addEventListener('mousemove', detectGltfHover, false);
+			}
+			
+			function showUiComponent(uiComponent)
+			{
+				uiComponent.position.set(mouse.x, mouse.y, 0);
+				uiComponent.visible = true;
+			}
+			function disableAllUiComponents()
+			{
+				for ( let u = 0; u < uiComponents.length; u ++ ) 
+					uiComponents[u].visible = false;
+			}	
+			
+			function openInNewTab(url) {
+			  window.open(url, '_blank').focus();
+			}
+			
+			function detectGltfClick( event ) {
+
+				event.preventDefault();
+
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+				raycaster.setFromCamera( mouse, camera );
+
+				var intersects = raycaster.intersectObjects( scene.children, true );
+
+				if ( intersects.length > 0 ) {
+					
+					
+					var objectName = intersects[ 0 ]["object"]["userData"]["name"]; //extracted by observing intersects[ 0 ] variable, to get location of god's hand obj id etc
+
+					//console.log( 'Intersection:', intersects[ 0 ] );
+					console.log( 'Intersection:', objectName );
+					console.log( 'intersects[ 0 ]:', intersects[ 0 ] );
+					
+					console.log( "obj_uData >>" + intersects[ 0 ]["object"]["userData"]);
+					
+					if(objectName == "Object_2")
+					{
+						showUiComponent(uiComponents[0]);
+						openInNewTab("fabric_embodied_ai.html");
+					}					
+					if(objectName == "Object_81")
+					{
+						showUiComponent(uiComponents[1]);
+						openInNewTab("https://twitter.com/iGodCollective");
+					}
+					if(objectName == "Object_17")
+					{
+						showUiComponent(uiComponents[4]);
+					}
+					if(objectName == "Object_25")
+					{
+						showUiComponent(uiComponents[2]);
+						openInNewTab("fabric_embodied_ai.html");
+					}	
+					if(objectName == "Object_29")
+					{
+						showUiComponent(uiComponents[3]);
+						openInNewTab("https://medium.com/@igodcollective/igai-software-catalogue-163b9ea2fee8");
+					}	
+					if(objectName == "Object_36")
+					{
+						showUiComponent(uiComponents[4]);
+					}	
+					if(objectName == "Object_40")
+					{
+						showUiComponent(uiComponents[1]);
+						openInNewTab("https://twitter.com/iGodCollective");
+					}						
+					/*Keys
+						Object_2 = god's hand
+						
+						//according to ring orientation from central to outer rings
+						//accounts for planets earth sized an above
+						Object_81 = sun 
+						Object_13 = orange planet, earth sized from center
+						Object_17 = earth
+						Object_25 = next planet from center
+						Object_29 = next planet from center
+						Object_36 = next planet from center
+						Object_40 = next planet from center (last planet blue)
+					*/
+				}
+
+			}
+			function detectGltfHover( event ) {
+
+				event.preventDefault();
+
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+		
+				raycaster.setFromCamera( mouse, camera );
+
+				var intersects = raycaster.intersectObjects( scene.children, true );
+
+				if ( intersects.length > 0 ) {
+					var objectName = intersects[ 0 ]["object"]["userData"]["name"]; //extracted by observing intersects[ 0 ] variable, to get location of god's hand obj id etc
+				
+					if(objectName == "Object_2")
+					{
+						showUiComponent(uiComponents[0]);
+					}					
+					if((objectName == "Object_81")||(objectName == ""))
+					{
+						showUiComponent(uiComponents[1]);
+					}
+					if(objectName == "Object_17")
+					{
+						showUiComponent(uiComponents[4]);
+					}
+					if(objectName == "Object_25")
+					{
+						//GODHAND_MOVE_AUDIO.play();
+						//zRotationActionForward.play();	
+						showUiComponent(uiComponents[2]);
+					}	
+					if(objectName == "Object_29")
+					{
+						//zRotationActionForwardB.play();
+						showUiComponent(uiComponents[3]);
+					}	
+					if(objectName == "Object_36")
+					{
+						//zRotationActionForwardC.play();
+						showUiComponent(uiComponents[4]);
+					}	
+					if(objectName == "Object_40")
+					{
+						//zRotationActionForwardD.play();
+						showUiComponent(uiComponents[1]);
+					}							
+				}
+				else
+				{
+					zRotationActionForward.stop(); 
+					zRotationActionForwardB.stop(); 
+					zRotationActionForwardC.stop(); 
+					zRotationActionForwardD.stop(); 
+					godHandsMixer.setTime(0); 
+					disableAllUiComponents();
+				}
+				
+				
+					/*Keys
+						Object_2 = god's hand
+						
+						//according to ring orientation from central to outer rings
+						//accounts for planets earth sized an above
+						Object_81 = sun 
+						Object_13 = orange planet, earth sized from center
+						Object_17 = earth
+						Object_25 = next planet from center
+						Object_29 = next planet from center
+						Object_36 = next planet from center
+						Object_40 = next planet from center (last planet blue)
+					*/
+			}		
+			function controlCam( deltaTime) {
+
+				// gives a bit of air control
+				const speedDelta = deltaTime * 0.11; 
+				const distance = 20;
+
+				if ( keyStates[ 'KeyW' ] ) {
+					console.log("move cam w");
+					camera.getWorldDirection(direction);
+					camera.position.addScaledVector(direction, cameraTranslationSpeedPos);
+				}
+				if ( keyStates[ 'KeyS' ] ) {
+					console.log("move cam s");
+					camera.getWorldDirection(direction);
+					camera.position.addScaledVector(direction, -cameraTranslationSpeedPos);
+				}
+				
+			}
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+			function animate() {
+
+				renderer.setAnimationLoop( render );
+				
+				requestAnimationFrame( animate );
+
+				const tASolarSystemDelta = clock.getDelta() ;
+				tASolarSystemMixer.update( tASolarSystemDelta * 4 );
+				
+				godHandsMixer.update(0.008); // Update animation mixer
+			}
+			function render() {
+				const deltaTime = Math.min( 0.05, clock.getDelta() ) / STEPS_PER_FRAME;
+
+				// we look for collisions in substeps to mitigate the risk of
+				// an object traversing another too quickly for detection.
+
+				for ( let i = 0; i < STEPS_PER_FRAME; i ++ ) {
+
+					controlCam( deltaTime );
+				}		
+				
+				renderer.render( scene, camera );
+			}
+		</script>
+	</body>
+</html>
