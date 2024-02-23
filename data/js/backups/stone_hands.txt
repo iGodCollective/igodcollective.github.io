@@ -1,0 +1,19 @@
+				const godsHandsLoader = new GLTFLoader();
+				godsHandsLoader.setDRACOLoader( dracoLoader );
+					
+				godsHandsLoader.load( 'data/models/hand_gesture1.glb', function ( gltf ) {
+				
+					const godsHands = gltf.scene.children[ 0 ];
+					godsHands.scale.multiplyScalar( 16 ); //scale=3 for front view
+					godsHands.rotation.y = -125; //works with front view, comment out for rear
+					godsHands.rotation.x = -155; //works with front view, comment out for rear
+			
+					godsHands.position.set(122, -213, -80);
+					
+					//mixer = new THREE.AnimationMixer( godsHands );
+					//mixer.clipAction( gltf.animations[ 0 ] ).play();
+					
+					scene.add( godsHands );
+					render();
+
+				} );

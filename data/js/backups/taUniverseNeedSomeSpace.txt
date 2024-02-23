@@ -1,0 +1,22 @@
+				const tAUniverseLoader = new GLTFLoader();
+				tAUniverseLoader.setDRACOLoader( dracoLoader );
+					
+				tAUniverseLoader.load( 'data/models/need_some_space.glb', function ( gltf ) {
+				
+					const tAUniverse = gltf.scene.children[ 0 ];
+					tAUniverse.scale.multiplyScalar( 4 ); //scale=3 for front view
+					//tAUniverse.rotation.y = -125; //works with front view, comment out for rear
+					tAUniverse.rotation.x = -155; //works with front view, comment out for rear
+			
+					tAUniverse.position.set(-6, 2, 0);
+					
+					scene.add( tAUniverse );
+					
+					taUniverseMixer = new THREE.AnimationMixer( tAUniverse );
+					taUniverseMixer.clipAction( gltf.animations[ 0 ] ).play();
+					
+					
+					
+					render();
+
+				} );

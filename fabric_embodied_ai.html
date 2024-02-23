@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>
+			Dio Lucciola
+		</title>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+		/>
+		<link type="text/css" rel="stylesheet" href="data/css/main.css" />
+		
+	</head>
+	<body>
+		<div id="container"></div>
+		<div id="info" >
+			
+		</div>
+		<div id="info">
+			<p> <img src="data/images/logoMain.png" style="padding-top:25%; width:180px; height:180px;"></img> </p> 
+			<p class = 'LargeSegoeFontFace'> Jamaica's 1st self driving car. <a style="color:#efe0a7;" href = "https://sketchfab.com/3d-models/dio-lucciola-d7c46fb87869459d95c94df2762d7be3">See build log</a>, or revisit <a style="color: #efe0a7;" href="https://igodcollective.github.io/">iGod Collective</a>.</p> 
+			<p class = 'MediumSegoeFontFace'>Dio Lucciola Automobile 3d Model and Real Car Project by <a style="color: #efe0a7;" href="https://sketchfab.com/3d-models/dio-lucciola-d7c46fb87869459d95c94df2762d7be3" target="_blank" rel="noopener">God Bennett.</a> Harvester Drone Project by <a style="color: #efe0a7;" href = "https://www.linkedin.com/posts/matthewstone095_ceresrobotics-agriculturalinnovation-dronetechnology-activity-7094139710259822592-FyPM/?trk=public_profile_like_view"> Matthew Stone </a>. </p>
+			
+			<p class = 'SmallSegoeFontFace'>Website powered by <a style="color: #efe0a7;" href="https://threejs.org" target="_blank" rel="noopener">threejs</a>. Background From </a> by <a style="color: #efe0a7;" href="https://polyhaven.com/" target="_blank" rel="noopener">Polyhaven</a> </p>
+			<link type="text/css" rel="stylesheet" href="style.css" />
+		<script src='data/js/jquery.js' type='text/javascript'></script>
+		<script src='data/js/jquery.audiotag.js' type='text/javascript'></script>
+			<script src="data/js/sweetalert-dev.js"></script>
+			<link href="data/css/sweetalert.css" rel=stylesheet type = 'text/css' />	
+		</div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./data/build/three.module.js",
+					"three/addons/": "./data/jsm/",
+					"three/nodes": "./data/jsm/nodes/Nodes.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+			import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			//rain
+			import { tslFn, texture, uv, uint, positionWorld, modelWorldMatrix, cameraViewMatrix, timerLocal, timerDelta, cameraProjectionMatrix, vec2, instanceIndex, positionGeometry, storage, MeshBasicNodeMaterial, If } from 'three/nodes';
+
+			import WebGPU from 'three/addons/capabilities/WebGPU.js';
+			import WebGL from 'three/addons/capabilities/WebGL.js';
+			import WebGPURenderer from 'three/addons/renderers/webgpu/WebGPURenderer.js';
+			import StorageBufferAttribute from 'three/addons/renderers/common/StorageBufferAttribute.js';
+
+			
+			const params = {
+				height: 15,
+				radius: 100,
+				enabled: true,
+			};
+
+			let camera, scene, renderer, skybox, clock, droneMixer, taUniverseMixer;
+			const keyStates = {};
+			const STEPS_PER_FRAME = 5;
+			const direction = new THREE.Vector3;
+			let cameraTranslationSpeedPos = 0.34, cameraTranslationSpeedNeg = 0.00001;
+			
+			
+			
+			init().then( animate );
+			
+			document.addEventListener( 'keydown', ( event ) => {
+
+				keyStates[ event.code ] = true;
+
+			} );
+
+			document.addEventListener( 'keyup', ( event ) => {
+
+				keyStates[ event.code ] = false;
+
+			} );
+			
+			async function init() {
+			
+				clock = new THREE.Clock();
+
+				camera = new THREE.PerspectiveCamera(
+					40,
+					window.innerWidth / window.innerHeight,
+					1,
+					1000
+				);
+				camera.position.set( - 20, 7, 20 );
+				camera.lookAt( 0, 4, 0 );
+
+				scene = new THREE.Scene();
+
+				const hdrLoader = new RGBELoader();
+				const envMap = await hdrLoader.loadAsync( 'data/textures/castel_st_angelo_roof_4k - like.hdr' );
+				envMap.mapping = THREE.EquirectangularReflectionMapping;
+
+				skybox = new GroundedSkybox( envMap, params.height, params.radius );
+				skybox.position.y = params.height - 0.01;
+				scene.add( skybox );
+
+				scene.environment = envMap;
+
+				const dracoLoader = new DRACOLoader();
+				dracoLoader.setDecoderPath( 'jsm/libs/draco/gltf/' );
+
+				const carLoader = new GLTFLoader();
+				carLoader.setDRACOLoader( dracoLoader );
+
+				const shadow = new THREE.TextureLoader().load( 'data/textures/dio_ao.png' );
+					
+				carLoader.load( 'data/models/dio_lucciola_no_stage.glb', function ( gltf ) {
+
+
+					const carModel = gltf.scene.children[ 0 ];
+					carModel.scale.multiplyScalar( 3 ); //scale=3 for front view
+					carModel.rotation.z = -135; //works with front view, comment out for rear
+			
+					//dio front view
+					carModel.position.set(40, -17, 111);
+					
+					//dio rear view
+					//carModel.position.set(1, -6, -50);
+					scene.add( carModel );
+					
+					render();
+
+				} );
+				
+				
+				const droneLoader = new GLTFLoader();
+				droneLoader.setDRACOLoader( dracoLoader );
+
+				droneLoader.load( 'data/models/animated_drone.glb', function ( gltf ) {
+
+
+					const droneModel = gltf.scene.children[ 0 ];
+					droneModel.scale.multiplyScalar( 15 ); //scale=3 for front view
+					droneModel.rotation.z = 5; //works with front view, comment out for rear
+					
+					droneModel.position.set(0, 2, 4);
+					
+					
+					scene.add( droneModel );
+					
+					droneMixer = new THREE.AnimationMixer( droneModel );
+					droneMixer.clipAction( gltf.animations[ 0 ] ).play();
+					
+					render();
+
+				} );
+
+				//
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+				//
+
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render );
+				controls.target.set( 0, 2, 0 );
+				controls.maxPolarAngle = THREE.MathUtils.degToRad( 90 );
+				controls.maxDistance = 80;
+				controls.minDistance = 20;
+				controls.enablePan = false;
+				controls.update();
+
+				document.body.appendChild( renderer.domElement );
+				window.addEventListener( 'resize', onWindowResize );
+		
+			}
+			function controlCam( deltaTime) {
+
+				// gives a bit of air control
+				const speedDelta = deltaTime * 0.11; 
+				const distance = 20;
+
+				if ( keyStates[ 'KeyW' ] ) {
+					console.log("move cam w");
+					camera.getWorldDirection(direction);
+					camera.position.addScaledVector(direction, cameraTranslationSpeedPos);
+				}
+				if ( keyStates[ 'KeyS' ] ) {
+					console.log("move cam s");
+					camera.getWorldDirection(direction);
+					camera.position.addScaledVector(direction, -cameraTranslationSpeedPos);
+				}
+				
+			}
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+			function animate() {
+
+				renderer.setAnimationLoop( render );
+				
+				requestAnimationFrame( animate );
+				
+				const droneDelta = clock.getDelta() * 12;
+				
+				droneMixer.update( droneDelta );
+			}
+			function render() {
+				const deltaTime = Math.min( 0.05, clock.getDelta() ) / STEPS_PER_FRAME;
+
+				// we look for collisions in substeps to mitigate the risk of
+				// an object traversing another too quickly for detection.
+
+				for ( let i = 0; i < STEPS_PER_FRAME; i ++ ) {
+
+					controlCam( deltaTime );
+				}		
+				renderer.render( scene, camera );
+			}
+		</script>
+	</body>
+</html>
