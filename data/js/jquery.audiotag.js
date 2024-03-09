@@ -3,8 +3,8 @@
 
 var musicTitles = 
 					[ 
-						"zelante_mattia_strings",
-						"zelante_mattia_strings", 
+						"Requiem_Oleg_Semenov",
+						"Neoclassical_Oleg_Semenov", 
 						"zelante_mattia_strings"
 					];
 
@@ -19,7 +19,10 @@ $(document).ready(function()
 {
 	//establish employme voice welcome element
 	
-	RANDOM_STARTUP_TITLE = musicTitles [ getRandomValueBasedOnArraySize ( musicTitles ) ];
+	//establish employme voice welcome element
+	var randInd =  getRandomValueBasedOnArraySize ( musicTitles );
+	console.log ( "randInd>>> " +  randInd );
+	RANDOM_STARTUP_TITLE = musicTitles [ randInd ];
 	AUDIOTAGJS_AMBIENT_AUDIO.setAttribute('src', 'data/audios/'+ RANDOM_STARTUP_TITLE + '.mp3' );
 	AUDIOTAGJS_AMBIENT_AUDIO.load();
 	AUDIOTAGJS_AMBIENT_AUDIO.addEventListener("load", function() { 
