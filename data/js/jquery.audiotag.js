@@ -1,5 +1,6 @@
 //written by God Bennett
-
+//2024+
+//
 
 var musicTitles = 
 					[ 
@@ -12,6 +13,7 @@ var AUDIOTAGJS_AMBIENT_AUDIO = document.createElement('audio'); //needs to be gl
 var RANDOM_STARTUP_TITLE;
 var USER_GESTURE_FLAG = false;
 
+
 var AUDIOTAGJS_APP_EFFECT_AUDIO_SEND_KUDOS = document.createElement('audio'); //needs to be global, so as to be controllable outside and beyond
 var AUDIOTAGJS_APP_EFFECT_AUDIO_OKAY = null;
 
@@ -19,10 +21,7 @@ $(document).ready(function()
 {
 	//establish employme voice welcome element
 	
-	//establish employme voice welcome element
-	var randInd =  getRandomValueBasedOnArraySize ( musicTitles );
-	console.log ( "randInd>>> " +  randInd );
-	RANDOM_STARTUP_TITLE = musicTitles [ randInd ];
+	RANDOM_STARTUP_TITLE = musicTitles [ getRandomValueBasedOnArraySize ( musicTitles ) ];
 	AUDIOTAGJS_AMBIENT_AUDIO.setAttribute('src', 'data/audios/'+ RANDOM_STARTUP_TITLE + '.mp3' );
 	AUDIOTAGJS_AMBIENT_AUDIO.load();
 	AUDIOTAGJS_AMBIENT_AUDIO.addEventListener("load", function() { 
@@ -66,7 +65,7 @@ $(document).ready(function()
 
 function getRandomValueBasedOnArraySize ( value )
 {//0-len(value)-1
-	return Math.floor ( ( Math.random ( ) * ( value.length - 1 ) ) + 0 );
+	return Math.floor ( ( Math.random ( ) * ( value.length ) ) + 0 );
 }
 
 
